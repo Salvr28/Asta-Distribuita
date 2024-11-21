@@ -313,6 +313,12 @@ void TO_Deliver(struct_message message){
 
   //aggiorno il sequence number
   sequenceNumber++;
+
+  // Controllo se la Highest Bid è cambiata
+  if(auctionMessageToReceive.bid > highestBid){                                      // Se la bid che ho prelevato è più grande...
+     highestBid = auctionMessageToReceive.bid;                                        // Aggiorno l'offerta più alta la momento
+  }
+  
   Serial.println("[Partecipant] Messaggio consegnato");
   Serial.println("[Partecipant] Bid offerta " + String(auctionMessageToReceive.bid) + "da parte di " + String(auctionMessageToReceive.senderId));
   Serial.println("[Partecipant] Il mio Sequence Number ora è " + String(sequenceNumber));
@@ -348,7 +354,10 @@ void sendBid(){
 
   auctionMessageToSend.bid = highestBid+1;                                              // Setto il valore dell'offerta
   auctionMessageToSend.senderId = myNodeId;                                              // Setto il mittente
-  auctionMessageToSend.messageId = auctionMessageToSend.messageId+1;                                     //
+  auctionMessageToSend.messageId = auctionMessageToSend.messageId+1;
+  for(int i=0; i<NUM_NODES; i++){
+    auctionMessageToSend.vectorClock[i] = vectorClock[i];
+  }
   auctionMessageToSend.vectorClock[myNodeId] = vectorClock[myNodeId] + 1;
   auctionMessageToSend.messageType = "bid";
 
