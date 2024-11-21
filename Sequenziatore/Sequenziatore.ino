@@ -170,14 +170,34 @@ void onDataReceive(const uint8_t *mac, const uint8_t *incomingData, int len){
         Serial.println("MessageId: "+String(auctionMessageToReceive.messageId));
         Serial.println("Sequence Number: "+String(auctionMessageToReceive.sequenceNum));
 
-        if(checkCorrispondence(auctionMessageToReceive,"fromOrderToCausal")){
-
+        // Controllo la corrispondenza del messaggio di ordinamento arrivato
+        bool firstCorrispondence = checkCorrispondence(auctionMessageToReceive,"fromOrderToCausal");
+        if(firstCorrispondence){
           TO_Deliver(auctionMessageToReceive);
           Serial.println("[Partecipant] Ho fatto la TO Deliver");
         }else{
           holdBackQueueOrder.push_back(auctionMessageToReceive);
           Serial.println("[Partecipant] Messaggio aggiunto alla hold-back queue di ordinamento.");
         }
+
+        // Controllo se il messaggio di ordinamento mi ha sbloccato qualcosa
+        // Qualche ordinamento che ha il sequence number più alto, ma che è arrivato prima
+        if(firstCorrispondence){
+          bool checkPopCorrispondence = false;
+          do{
+            checkPopCorrispondence = false;
+            for(auto it = holdBackQueueOrder.rbegin(); it != holdBackQueueOrder.rend(); ){
+              if(checkCorrispondence(*it,"fromCausalToOrder")){
+                checkPopCorrispondence = true;
+                TO_Deliver(*it);
+                Serial.println("[Partecipant] Ho fatto la TO Deliver")
+                break;     
+              }
+              ++it;
+            }
+          }while(checkPopCorrispondence);
+        }
+
       }else if(auctionMessageToReceive.messageType == "start"){
         auctionStarted = true;
         Serial.println("[Partecipant] Asta iniziata sono così felice");
@@ -316,9 +336,11 @@ void TO_Deliver(struct_message message){
 
   // Controllo se la Highest Bid è cambiata
   if(auctionMessageToReceive.bid > highestBid){                                      // Se la bid che ho prelevato è più grande...
-     highestBid = auctionMessageToReceive.bid;                                        // Aggiorno l'offerta più alta la momento
+    highestBid = auctionMessageToReceive.bid;                                        // Aggiorno l'offerta più alta la momento
+    winnerNodeId = auctionMessageToReceive.senderId;                                 // e il vincitore momentaneo
   }
-  
+
+
   Serial.println("[Partecipant] Messaggio consegnato");
   Serial.println("[Partecipant] Bid offerta " + String(auctionMessageToReceive.bid) + "da parte di " + String(auctionMessageToReceive.senderId));
   Serial.println("[Partecipant] Il mio Sequence Number ora è " + String(sequenceNumber));
@@ -354,8 +376,8 @@ void sendBid(){
 
   auctionMessageToSend.bid = highestBid+1;                                              // Setto il valore dell'offerta
   auctionMessageToSend.senderId = myNodeId;                                              // Setto il mittente
-  auctionMessageToSend.messageId = auctionMessageToSend.messageId+1;
-  for(int i=0; i<NUM_NODES; i++){
+  auctionMessageToSend.messageId = auctionMessageToSend.messageId+1;                                     //
+  for (int i = 0; i < NUM_NODES; i++) {
     auctionMessageToSend.vectorClock[i] = vectorClock[i];
   }
   auctionMessageToSend.vectorClock[myNodeId] = vectorClock[myNodeId] + 1;
