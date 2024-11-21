@@ -64,6 +64,22 @@ void startAuction(){
   auctionStarted = true;                                                            // metto a true l'inizio dell'asta
   restartTimer = millis();                                                           // leggo e salvo il tempo di inizio asta
   auctionEndTime = DURATION_TIME;
+  vectorClock = {0,0,0,0,0};                                                        // resetto il vector clock
+  holdBackQueueSeq.clear();                                                         // pulisco la coda di messaggi
+  holdBackQueuePart.clear();                                                        // pulisco la coda di messaggi
+  holdBackQueueOrder.clear();                                                       // pulisco la coda di messaggi
+  holdBackQueueCausal.clear();                                                      // pulisco la coda di messaggi
+
+  auctionMessageToSend.messageId = 0;                                               // resetto l'id del messaggio
+  auctionMessageToSend.bid = 0;                                                      // resetto l'offerta
+  auctionMessageToSend.vectorClock = {0,0,0,0,0};                                   // resetto il vector clock
+
+
+  auctionMessageToReceive.messageId = 0;                                               // resetto l'id del messaggio
+  auctionMessageToReceive.bid = 0;                                                      // resetto l'offerta
+  auctionMessageToReceive.vectorClock = {0,0,0,0,0};                                   // resetto il vector clock
+
+
   Serial.println("[Sequencer] Asta iniziata");
 }
 
@@ -190,7 +206,7 @@ void onDataReceive(const uint8_t *mac, const uint8_t *incomingData, int len){
               if(checkCorrispondence(*it,"fromCausalToOrder")){
                 checkPopCorrispondence = true;
                 TO_Deliver(*it);
-                Serial.println("[Partecipant] Ho fatto la TO Deliver")
+                Serial.println("[Partecipant] Ho fatto la TO Deliver");
                 break;     
               }
               ++it;
@@ -199,6 +215,7 @@ void onDataReceive(const uint8_t *mac, const uint8_t *incomingData, int len){
         }
 
       }else if(auctionMessageToReceive.messageType == "start"){
+        startAuction();
         auctionStarted = true;
         Serial.println("[Partecipant] Asta iniziata sono così felice");
       }else if(auctionMessageToReceive.messageType == "end"){
@@ -367,6 +384,7 @@ void sendSequencer(struct_message message) {
 
     if (result == ESP_OK) {
         Serial.println("[Sequencer] Offerta inviata di " + String(auctionMessageToSend.bid) + " da parte di " + String(auctionMessageToSend.senderId));
+        Serial.println("[Sequencer] con sequence number di " + String(sequenceNumber-1));
     } else {
         Serial.println("[Sequencer] Errore nell'invio del messaggio di ordinamento");
     }
