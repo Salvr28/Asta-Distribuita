@@ -56,7 +56,7 @@ struct_message auctionMessageToReceive;                 //Messaggio ricevuto
 
 esp_now_peer_info_t peerInfo; // Aggiunta dichiarazione della variabile peerInfo
 
-// Funzione per iniziare l'asta - SEQUENZIATORE
+// Funzione per iniziare l'asta - TUTTI
 void startAuction(){
   highestBid = 0;
   winnerNodeId = -1;
@@ -221,6 +221,7 @@ void onDataReceive(const uint8_t *mac, const uint8_t *incomingData, int len){
       }else if(auctionMessageToReceive.messageType == "end"){
         auctionStarted = false;
         Serial.println("[Partecipant] Asta finita, sono triste");
+        printHoldBackQueues();
       }
     }
 }
@@ -496,6 +497,49 @@ bool checkButtonPressed(int pinButton) {
 
   return false; // Nessun pulsante premuto
 }
+
+// Funzione di debug per stampare le code di messaggi dei partecipanti
+void printHoldBackQueues(){
+  Serial.println("HoldBackQueuePart:");
+  for (int i = 0; i < holdBackQueuePart.size(); i++) {
+    Serial.println("MessageId: "+String(holdBackQueuePart[i].messageId));
+    Serial.println("SenderId: "+String(holdBackQueuePart[i].senderId));
+    Serial.println("Bid: "+String(holdBackQueuePart[i].bid));
+    Serial.print("Vector Clock: [ ");
+    for (int j = 0; j < NUM_NODES; j++) { // Usa NUM_NODES per la dimensione dinamica
+      Serial.print(holdBackQueuePart[i].vectorClock[j]);
+      if (j < NUM_NODES - 1) Serial.print(", "); // Aggiungi virgola tra i valori, ma non alla fine
+    }
+    Serial.println(" ]");
+  }
+
+  Serial.println("HoldBackQueueCausal:");
+  for (int i = 0; i < holdBackQueueCausal.size(); i++) {
+    Serial.println("MessageId: "+String(holdBackQueueCausal[i].messageId));
+    Serial.println("SenderId: "+String(holdBackQueueCausal[i].senderId));
+    Serial.println("Bid: "+String(holdBackQueueCausal[i].bid));
+    Serial.print("Vector Clock: [ ");
+    for (int j = 0; j < NUM_NODES; j++) { // Usa NUM_NODES per la dimensione dinamica
+      Serial.print(holdBackQueueCausal[i].vectorClock[j]);
+      if (j < NUM_NODES - 1) Serial.print(", "); // Aggiungi virgola tra i valori, ma non alla fine
+    }
+    Serial.println(" ]");
+  }
+
+  Serial.println("HoldBackQueueOrder:");
+  for (int i = 0; i < holdBackQueueOrder.size(); i++) {
+    Serial.println("MessageId: "+String(holdBackQueueOrder[i].messageId));
+    Serial.println("SenderId: "+String(holdBackQueueOrder[i].senderId));
+    Serial.println("Bid: "+String(holdBackQueueOrder[i].bid));
+    Serial.print("Vector Clock: [ ");
+    for (int j = 0; j < NUM_NODES; j++) { // Usa NUM_NODES per la dimensione dinamica
+      Serial.print(holdBackQueueOrder[i].vectorClock[j]);
+      if (j < NUM_NODES - 1) Serial.print(", "); // Aggiungi virgola tra i valori, ma non alla fine
+    }
+    Serial.println(" ]");
+  }
+
+}  
 
 /**********************FUNZIONE DI SETUP**************************************/
 void setup() {
